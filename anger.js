@@ -61,14 +61,15 @@ function anger (opts) {
     }
   }
 
-// map because of errors
+  // map because of errors
   steed.map(clients, (client, done) => {
     const startTime = process.hrtime()
     let numRetries = 0
     again((success, failure, fatal) => {
-      client.connect({ auth: auth(client, client.anger.id) }, (err) => {
-        if (err) failure(err)
-        else success()
+      client.connect({auth: auth(client, client.anger.id)}).catch(err => {
+        failure(err)
+      }).then(() => {
+        success()
       })
     }, (err) => {
       if (err) {
@@ -90,8 +91,13 @@ function anger (opts) {
     tracker.emit('connect')
 
     // map because of errors
-    steed.map(clients, (client, done) => {
-      client.subscribe(opts.subscription, handler, done)
+    steed.map(clients, async (client, done) => {
+      try {
+        await client.subscribe(opts.subscription, handler)
+        done()
+      } catch (err) {
+        console.log(err)
+      }
     }, (err) => {
       if (err) {
         return onError(err)

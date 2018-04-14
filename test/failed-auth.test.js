@@ -2,13 +2,12 @@
 
 const test = require('tap').test
 const anger = require('..')
+const authServer = require('./authServer')
 
 test('failed auth', { timeout: 3000 }, (t) => {
-  t.plan(3)
+  t.plan(2)
 
-  require('./authServer')((err, server) => {
-    t.error(err)
-
+  authServer().then(server => {
     t.tearDown(server.stop.bind(server))
 
     let uid = 0
@@ -18,7 +17,7 @@ test('failed auth', { timeout: 3000 }, (t) => {
       senders: 1,
       connections: 10,
       identifier: (payload) => payload.meta.id,
-      auth: { headers: { authorization: `Basic ${new Buffer('jane:jane').toString('base64')}` } },
+      auth: { headers: { authorization: `Basic ${Buffer.from('jane:jane').toString('base64')}` } },
       requests: 1,
       responses: 10,
       trigger: (sender) => {
@@ -44,5 +43,7 @@ test('failed auth', { timeout: 3000 }, (t) => {
     instance.on('end', () => {
       t.fail('end never happens')
     })
+  }).catch(err => {
+    t.error(err)
   })
 })

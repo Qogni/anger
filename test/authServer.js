@@ -1,11 +1,9 @@
-var Hapi = require('hapi')
-var Basic = require('hapi-auth-basic')
-var Nes = require('nes')
+const Hapi = require('hapi')
+const Basic = require('hapi-auth-basic')
+const Nes = require('nes')
 
-function build (cb) {
-  var server = new Hapi.Server()
-
-  server.connection({
+async function build () {
+  const server = new Hapi.Server({
     host: 'localhost',
     port: 0
   })
@@ -13,54 +11,58 @@ function build (cb) {
   server.count = 0
   server.failedCount = 0
 
-  server.register([Basic, Nes], function (err) {
-    if (err) { throw err }
-    server.users = {
-      john: {
-        username: 'john',
-        name: 'John Doe',
-        id: '2133d32a',
-        signin: 0
-      },
-      james: {
-        username: 'james',
-        name: 'James Doe',
-        id: '2143d3ff',
-        signin: 0
+  await server.register({ plugin: Basic })
+  await server.register({ plugin: Nes })
+
+  server.users = {
+    john: {
+      username: 'john',
+      name: 'John Doe',
+      id: '2133d32a',
+      signin: 0
+    },
+    james: {
+      username: 'james',
+      name: 'James Doe',
+      id: '2143d3ff',
+      signin: 0
+    }
+  }
+
+  const validate = async (request, username, password, h) => {
+    const user = server.users[username]
+    if (!user) {
+      server.failedCount++
+      return { credentials: null, isValid: false }
+    }
+    server.users[username].signin++
+
+    return {
+      isValid: password === server.users[username].username,
+      credentials: { id: user.id, name: user.name }
+    }
+  }
+
+  server.auth.strategy('simple', 'basic', { validate })
+  server.auth.default('simple', { validate })
+
+  server.subscription('/greet')
+
+  server.route({
+    method: 'POST',
+    path: '/h',
+    config: {
+      id: 'hello',
+      handler: function (request, h) {
+        server.count++
+        server.publish('/greet', { hello: 'world', meta: { id: request.payload.id } })
+        return 'Hello ' + request.auth.credentials.name
       }
     }
-
-    var validate = function (request, username, password, callback) {
-      var user = server.users[username]
-      if (!user) {
-        server.failedCount++
-        return callback(null, false)
-      }
-      server.users[username].signin++
-      callback(null, password === server.users[username].username, { id: user.id, name: user.name })
-    }
-
-    server.auth.strategy('simple', 'basic', 'required', { validateFunc: validate })
-
-    server.subscription('/greet')
-
-    server.route({
-      method: 'POST',
-      path: '/h',
-      config: {
-        id: 'hello',
-        handler: function (request, reply) {
-          server.count++
-          server.publish('/greet', { hello: 'world', meta: { id: request.payload.id } })
-          return reply('Hello ' + request.auth.credentials.name)
-        }
-      }
-    })
-
-    server.start((err) => {
-      cb(err, server)
-    })
   })
+
+  await server.start()
+  return server
 }
 
 module.exports = build

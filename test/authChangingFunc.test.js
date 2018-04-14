@@ -2,9 +2,9 @@
 
 const t = require('tap')
 const anger = require('..')
+const authServer = require('./authServer')
 
-require('./authServer')((err, server) => {
-  t.error(err)
+authServer().then(server => {
   let uid = 0
   const instance = anger({
     url: server.info.uri,
@@ -14,8 +14,8 @@ require('./authServer')((err, server) => {
     identifier: (payload) => payload.meta.id,
     auth: (client, i) => {
       return i % 2
-            ? { headers: { authorization: `Basic ${new Buffer('john:john', 'utf8').toString('base64')}` } }
-            : { headers: { authorization: `Basic ${new Buffer('james:james', 'utf8').toString('base64')}` } }
+        ? { headers: { authorization: `Basic ${Buffer.from('john:john', 'utf8').toString('base64')}` } }
+        : { headers: { authorization: `Basic ${Buffer.from('james:james', 'utf8').toString('base64')}` } }
     },
     requests: 1,
     responses: 10,
@@ -34,7 +34,7 @@ require('./authServer')((err, server) => {
   instance.on('error', t.error)
 
   instance.on('end', (result) => {
-    server.stop(() => {
+    server.stop().then(() => {
       t.end()
     })
     t.equal(server.count, 1, 'number of responses from the server')
@@ -52,4 +52,6 @@ require('./authServer')((err, server) => {
     t.ok(result.latency.min >= 0, 'latency.min exists')
     t.ok(result.latency.max, 'latency.max exists')
   })
+}).catch(err => {
+  t.error(err)
 })

@@ -2,9 +2,9 @@
 
 const t = require('tap')
 const anger = require('..')
+const server = require('./server')
 
-require('./server')((err, server) => {
-  t.error(err)
+server().then(server => {
   let uid = 0
   const senders = 2
   const requests = 1000
@@ -31,7 +31,7 @@ require('./server')((err, server) => {
   })
 
   instance.on('end', (result) => {
-    server.stop(() => {
+    server.stop().then(() => {
       t.end()
     })
 
@@ -70,4 +70,6 @@ require('./server')((err, server) => {
     t.ok(result.disconnects >= 0, 'disconnects exist')
     t.ok(result.reconnects >= 0, 'reconnects exists')
   })
+}).catch(err => {
+  t.error(err)
 })

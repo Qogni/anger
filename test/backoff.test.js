@@ -2,15 +2,14 @@
 
 const test = require('tap').test
 const anger = require('..')
+const authServer = require('./authServer')
 
 test('backoff test', { timeout: 3000 }, (t) => {
   t.plan(4)
 
   const startTime = process.hrtime()
 
-  require('./authServer')((err, server) => {
-    t.error(err)
-
+  authServer().then(server => {
     t.tearDown(server.stop.bind(server))
 
     let uid = 0
@@ -22,7 +21,7 @@ test('backoff test', { timeout: 3000 }, (t) => {
       requests: 1,
       responses: 1,
       identifier: (payload) => payload.meta.id,
-      auth: { headers: { authorization: `Basic ${new Buffer('jane:jane').toString('base64')}` } },
+      auth: { headers: { authorization: `Basic ${Buffer.from('jane:jane').toString('base64')}` } },
       trigger: (sender) => {
         sender.request({
           method: 'POST',
@@ -51,5 +50,7 @@ test('backoff test', { timeout: 3000 }, (t) => {
     instance.on('end', () => {
       t.fail('end never happens')
     })
+  }).catch(err => {
+    t.error(err)
   })
 })

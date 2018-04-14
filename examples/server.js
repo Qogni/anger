@@ -1,17 +1,15 @@
 'use strict'
 
-const hapi = require('hapi')
-const nes = require('nes')
-const server = new hapi.Server()
+const Hapi = require('hapi')
+const Nes = require('nes')
 
-server.connection({
+const server = new Hapi.Server({
   host: 'localhost',
   port: 3000
 })
 
-server.register(nes, (err) => {
-  if (err) { throw err }
-
+;(async () => {
+  await server.register({ plugin: Nes })
   server.subscription('/greet')
 
   server.route({
@@ -19,16 +17,14 @@ server.register(nes, (err) => {
     path: '/h',
     config: {
       id: 'hello',
-      handler: function (request, reply) {
+      handler: (request, h) => {
         // in the publish response we assign meta.id to the request payload id
         server.publish('/greet', { hello: 'world', meta: { id: request.payload.id } })
-        return reply('world!')
+        return 'world!'
       }
     }
   })
-})
 
-server.start((err) => {
-  if (err) throw err
+  await server.start()
   console.log('now listening on localhost:3000')
-})
+})()

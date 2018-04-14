@@ -2,9 +2,9 @@
 
 const t = require('tap')
 const anger = require('..')
+const server = require('./server')
 
-require('./server')((err, server) => {
-  t.error(err)
+server().then(server => {
   let uid = 0
   const senders = 2
   const requests = 1000
@@ -48,4 +48,6 @@ require('./server')((err, server) => {
     t.ok(result.latency.min >= 0, 'latency.min exists')
     t.ok(result.latency.max, 'latency.max exists')
   })
+}).catch(err => {
+  t.error(err)
 })

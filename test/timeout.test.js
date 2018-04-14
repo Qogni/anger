@@ -2,9 +2,9 @@
 
 const t = require('tap')
 const anger = require('..')
+const timeoutServer = require('./timeoutServer')
 
-require('./timeoutServer')((err, server) => {
-  t.error(err)
+timeoutServer().then(server => {
   let uid = 0
   const senders = 2
   const requests = 10
@@ -31,7 +31,7 @@ require('./timeoutServer')((err, server) => {
   })
 
   instance.on('end', (result) => {
-    server.stop(() => {
+    server.stop().then(() => {
       t.end()
     })
 
@@ -49,4 +49,6 @@ require('./timeoutServer')((err, server) => {
     t.ok(result.latency.min >= 0, 'latency.min exists')
     t.ok(result.latency.max, 'latency.max exists')
   })
+}).catch(err => {
+  t.error(err)
 })

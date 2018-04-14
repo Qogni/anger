@@ -2,9 +2,9 @@
 
 const t = require('tap')
 const anger = require('..')
+const authServer = require('./authServer')
 
-require('./authServer')((err, server) => {
-  t.error(err)
+authServer().then(server => {
   let uid = 0
   const instance = anger({
     url: server.info.uri,
@@ -12,7 +12,7 @@ require('./authServer')((err, server) => {
     senders: 1,
     connections: 10,
     identifier: (payload) => payload.meta.id,
-    auth: { headers: { authorization: `Basic ${new Buffer('john:john', 'utf8').toString('base64')}` } },
+    auth: { headers: { authorization: `Basic ${Buffer.from('john:john', 'utf8').toString('base64')}` } },
     requests: 1,
     responses: 10,
     trigger: (sender) => {
@@ -46,4 +46,6 @@ require('./authServer')((err, server) => {
     t.ok(result.latency.min >= 0, 'latency.min exists')
     t.ok(result.latency.max, 'latency.max exists')
   })
+}).catch(err => {
+  t.error(err)
 })

@@ -1,48 +1,41 @@
 'use strict'
 
-const hapi = require('hapi')
+const Hapi = require('hapi')
+const Nes = require('nes')
 
-function build (cb) {
-  const server = new hapi.Server()
-
-  server.connection({
+async function build () {
+  const server = new Hapi.Server({
     host: 'localhost',
     port: 0
   })
 
   server.count = 0
 
-  server.register(require('nes'), (err) => {
-    if (err) { throw err }
+  await server.register({ plugin: Nes })
 
-    server.subscription('/greet')
+  server.subscription('/greet')
 
-    server.route({
-      method: 'POST',
-      path: '/h',
-      config: {
-        id: 'hello',
-        handler: function (request, reply) {
-          server.count++
-          server.publish('/greet', { hello: 'world', meta: { id: request.payload.id } })
-          return reply('world!')
-        }
+  server.route({
+    method: 'POST',
+    path: '/h',
+    config: {
+      id: 'hello',
+      handler: (request, h) => {
+        server.count++
+        server.publish('/greet', { hello: 'world', meta: { id: request.payload.id } })
+        return 'world!'
       }
-    })
+    }
   })
 
-  server.start((err) => {
-    cb(err, server)
-  })
+  await server.start()
+  return server
 }
 
 module.exports = build
 
 if (require.main === module) {
-  build((err, server) => {
-    if (err) {
-      throw err
-    }
+  build().then(server => {
     console.log(`server listening at ${server.info.uri}`)
   })
 }
